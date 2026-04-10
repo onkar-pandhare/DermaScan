@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>New Scan – DermaScan</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+</head>
+<body>
+
+<div class="layout">
+
+  <%- include('partials/sidebar', { currentPage: 'home', user: user }) %>
+
+  <div class="page-main">
+
+    <!-- Desktop topbar -->
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">New Scan</div>
+        <div class="topbar-sub">Upload a skin image for AI analysis</div>
+      </div>
+      <span class="badge badge-active">
+        <svg width="7" height="7" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="currentColor"/></svg>
+        Model active
+      </span>
+    </header>
+
+    <main class="page-content">
+
+      <!-- Two-col on desktop, single col on mobile -->
+      <div class="index-two-col" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:960px;">
+
+        <!-- Upload card -->
+        <div class="card" style="padding:24px;">
+          <div class="card-header">
+            <span class="card-title">Upload image</span>
+            <span class="badge badge-neutral" style="font-size:11px;">PNG / JPG · 10 MB</span>
+          </div>
+
+          <form action="/predict" method="POST" enctype="multipart/form-data" id="scan-form">
+
+            <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+              <input type="file" name="image" id="file-input" accept="image/*" required/>
+
+              <div id="upload-placeholder">
+                <div class="upload-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <p style="font-size:14px; font-weight:500; color:var(--text); margin-bottom:4px;">
+                  Tap to choose an image
+                </p>
+                <p style="font-size:12px; color:var(--text-faint);">
+                  Clear, close-up photos give best results
+                </p>
+              </div>
+
+              <img id="preview-img" src="" alt="Preview"
+                   style="display:none; width:100%; max-height:240px; object-fit:contain; border-radius:10px;"/>
+            </div>
+
+            <p id="file-name" style="font-size:12px; color:var(--text-muted); margin-top:10px; display:none;"></p>
+
+            <div style="display:flex; gap:10px; margin-top:16px;" class="btn-stack">
+              <button type="submit" class="btn btn-primary" style="flex:1;" id="submit-btn">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="7.5" cy="7.5" r="6"/>
+                  <path d="M5 7.5h5M7.5 5l2.5 2.5-2.5 2.5"/>
+                </svg>
+                Run Analysis
+              </button>
+              <button type="button" class="btn btn-ghost" onclick="clearUpload()">Clear</button>
+            </div>
+
+          </form>
+
+          <!-- Loading -->
+          <div id="loading" style="display:none; text-align:center; padding:20px 0; margin-top:16px;">
+            <div class="spinner"></div>
+            <p style="font-size:13px; color:var(--text-muted);">Analysing — this may take a few seconds…</p>
+          </div>
+        </div>
+
+        <!-- Tips card -->
+        <div class="card" style="padding:24px;">
+          <div class="card-header">
+            <span class="card-title">Tips for best results</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <% const tips = [
+              { icon: '☀️', title: 'Good lighting',  desc: 'Natural light works best. Avoid harsh shadows.' },
+              { icon: '🔍', title: 'Close-up focus', desc: 'Fill the frame with the lesion, aim for 300×300 px+.' },
+              { icon: '📐', title: 'Flat angle',     desc: 'Hold the camera directly above the skin.' },
+              { icon: '🚫', title: 'No filters',     desc: 'Upload original, unedited photos only.' }
+            ] %>
+            <% tips.forEach(t => { %>
+              <div style="display:flex; align-items:flex-start; gap:12px;">
+                <div style="font-size:18px; line-height:1; margin-top:2px; flex-shrink:0;"><%= t.icon %></div>
+                <div>
+                  <div style="font-size:13px; font-weight:500; margin-bottom:2px;"><%= t.title %></div>
+                  <div style="font-size:12px; color:var(--text-muted);"><%= t.desc %></div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+
+          <div style="margin-top:20px; padding:12px 14px; background:var(--warning-bg); border-radius:var(--radius-sm); font-size:12px; color:var(--warning); line-height:1.5;">
+            ⚠️ For preliminary screening only. Always consult a qualified dermatologist for a medical diagnosis.
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const fileInput  = document.getElementById('file-input');
+  const previewImg = document.getElementById('preview-img');
+  const placeholder = document.getElementById('upload-placeholder');
+  const fileName   = document.getElementById('file-name');
+  const form       = document.getElementById('scan-form');
+  const loading    = document.getElementById('loading');
+  const dropZone   = document.getElementById('drop-zone');
+
+  fileInput.addEventListener('change', () => showPreview(fileInput.files[0]));
+
+  function showPreview(file) {
+    if (!file) return;
+    previewImg.src = URL.createObjectURL(file);
+    previewImg.style.display = 'block';
+    placeholder.style.display = 'none';
+    fileName.textContent = file.name;
+    fileName.style.display = 'block';
+  }
+  function clearUpload() {
+    fileInput.value = '';
+    previewImg.style.display = 'none';
+    placeholder.style.display = 'block';
+    fileName.style.display = 'none';
+  }
+
+  ['dragover','dragenter'].forEach(e => dropZone.addEventListener(e, ev => {
+    ev.preventDefault(); dropZone.classList.add('dragover');
+  }));
+  ['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {
+    ev.preventDefault(); dropZone.classList.remove('dragover');
+  }));
+  dropZone.addEventListener('drop', ev => {
+    const file = ev.dataTransfer.files[0];
+    if (file) { fileInput.files = ev.dataTransfer.files; showPreview(file); }
+  });
+
+  form.addEventListener('submit', () => {
+    document.getElementById('submit-btn').disabled = true;
+    loading.style.display = 'block';
+  });
+</script>
+
+</body>
+</html>

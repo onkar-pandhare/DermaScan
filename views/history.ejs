@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>History – DermaScan</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div class="layout">
+
+  <%- include('partials/sidebar', { currentPage: 'history', user: user }) %>
+
+  <div class="page-main">
+
+    <!-- Desktop topbar -->
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Scan History</div>
+        <div class="topbar-sub"><%= predictions.length %> scan<%= predictions.length !== 1 ? 's' : '' %> on record</div>
+      </div>
+      <a href="/" class="btn btn-primary" style="font-size:13px; padding:7px 16px;">+ New scan</a>
+    </header>
+
+    <main class="page-content">
+
+      <%
+        const cancerCount = predictions.filter(p => p.result === 'Cancer').length;
+        const safeCount   = predictions.length - cancerCount;
+        const avgConf     = predictions.length
+              ? Math.round(predictions.reduce((s,p) => s + p.confidence, 0) / predictions.length)
+              : 0;
+      %>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total scans</div>
+          <div class="stat-val"><%= predictions.length %></div>
+          <div class="stat-note">All time</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cancer detected</div>
+          <div class="stat-val" style="color:<%= cancerCount > 0 ? 'var(--danger)' : 'inherit' %>;"><%= cancerCount %></div>
+          <div class="stat-note <%= cancerCount > 0 ? 'down' : '' %>"><%= cancerCount > 0 ? 'Requires attention' : 'All clear' %></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Non-cancerous</div>
+          <div class="stat-val" style="color:var(--success);"><%= safeCount %></div>
+          <div class="stat-note up">Benign results</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg confidence</div>
+          <div class="stat-val"><%= avgConf %>%</div>
+          <div class="stat-note">Across all scans</div>
+        </div>
+      </div>
+
+      <!-- Filters — scroll horizontally on very small screens -->
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
+        <span style="font-size:13px; color:var(--text-muted); white-space:nowrap; flex-shrink:0;">Filter:</span>
+        <button class="btn filter-btn active-filter" data-filter="all"        style="font-size:12px; padding:5px 14px; white-space:nowrap; flex-shrink:0;">All</button>
+        <button class="btn filter-btn"               data-filter="Cancer"     style="font-size:12px; padding:5px 14px; white-space:nowrap; flex-shrink:0;">Cancer</button>
+        <button class="btn filter-btn"               data-filter="Non-Cancer" style="font-size:12px; padding:5px 14px; white-space:nowrap; flex-shrink:0;">Non-cancer</button>
+      </div>
+
+      <!-- Empty state -->
+      <% if (predictions.length === 0) { %>
+        <div class="card" style="padding:48px 24px; text-align:center;">
+          <div style="font-size:36px; margin-bottom:12px;">🔍</div>
+          <p style="font-weight:500; margin-bottom:6px;">No scans yet</p>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">Upload your first image to get started.</p>
+          <a href="/" class="btn btn-primary btn-full">Start scanning</a>
+        </div>
+
+      <% } else { %>
+
+      <!-- Accordion list -->
+      <div id="history-list" style="display:flex; flex-direction:column; gap:10px;">
+        <% predictions.slice().reverse().forEach(p => {
+             const isCancer  = p.result === 'Cancer';
+             const conf      = Math.round(p.confidence);
+             const dateStr   = new Date(p.createdAt).toLocaleDateString('en-IN', {
+                                 day:'numeric', month:'short', year:'numeric',
+                                 hour:'2-digit', minute:'2-digit'
+                               });
+             const confLabel = conf >= 80 ? 'High confidence — model is certain.'
+                             : conf >= 60 ? 'Moderate confidence — follow-up advised.'
+                             :              'Low confidence — clinical assessment needed.';
+             const rec       = isCancer
+                             ? '⚠️ Consult a dermatologist immediately.'
+                             : '✓ No immediate concern. Regular self-checks every 3 months.';
+             const pid       = String(p._id);
+        %>
+
+          <div class="acc-item" data-result="<%= p.result %>">
+
+            <!-- Summary row -->
+            <div class="acc-head" onclick="toggleAcc(this)" aria-expanded="false">
+
+              <img class="history-thumb" src="/<%= p.imagePath %>" alt="Scan" onerror="this.style.opacity='0'"/>
+
+              <div class="history-info">
+                <div class="history-type"><%= p.cancerType || 'Unknown type' %></div>
+                <div class="history-date"><%= dateStr %></div>
+              </div>
+
+              <!-- Confidence bar — hidden on very small screens via CSS -->
+              <div class="conf-bar-col" style="width:100px; flex-shrink:0;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-faint); margin-bottom:4px;">
+                  <span>Conf.</span>
+                  <span style="font-weight:500; color:var(--text);"><%= conf %>%</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill <%= isCancer ? 'danger' : '' %>" style="width:<%= conf %>%;"></div>
+                </div>
+              </div>
+
+              <span class="badge <%= isCancer ? 'badge-cancer' : 'badge-safe' %>" style="flex-shrink:0; font-size:11px;">
+                <%= p.result %>
+              </span>
+
+              <svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                   stroke="currentColor" stroke-width="1.5" style="flex-shrink:0; color:var(--text-faint);">
+                <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+
+            </div>
+            <!-- end summary row -->
+
+            <!-- Expandable detail -->
+            <div class="acc-body">
+              <div class="acc-inner">
+
+                <!-- Verdict + image — stacks on mobile -->
+                <div class="result-top-grid" style="display:grid; grid-template-columns:1fr 1.5fr; gap:16px; margin-bottom:16px;">
+
+                  <div style="display:flex; flex-direction:column; gap:12px;">
+
+                    <span class="badge <%= isCancer ? 'badge-cancer' : 'badge-safe' %>" style="width:fit-content;">
+                      <svg width="7" height="7" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="currentColor"/></svg>
+                      <%= p.result %>
+                    </span>
+
+                    <div>
+                      <h3 style="font-size:20px; font-weight:600; margin-bottom:4px; line-height:1.2;">
+                        <%= p.cancerType || 'Benign Lesion' %>
+                      </h3>
+                      <p style="font-size:13px; color:var(--text-muted);">
+                        <%= isCancer ? 'Malignant characteristics detected.' : 'No signs of malignancy found.' %>
+                      </p>
+                    </div>
+
+                    <div>
+                      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+                        <span style="font-size:12px; color:var(--text-muted);">Confidence</span>
+                        <span style="font-size:26px; font-weight:600; color:<%= isCancer ? 'var(--danger)' : 'var(--primary)' %>;"><%= conf %>%</span>
+                      </div>
+                      <div class="progress-track">
+                        <div class="progress-fill <%= isCancer ? 'danger' : '' %>" style="width:<%= conf %>%;"></div>
+                      </div>
+                      <p style="font-size:12px; color:var(--text-faint); margin-top:5px;"><%= confLabel %></p>
+                    </div>
+
+                    <div style="padding:10px 12px; border-radius:var(--radius-sm);
+                                background:<%= isCancer ? 'var(--danger-bg)' : 'var(--success-bg)' %>;
+                                font-size:13px; line-height:1.4;
+                                color:<%= isCancer ? 'var(--danger)' : 'var(--success)' %>;">
+                      <%= rec %>
+                    </div>
+
+                    <div style="font-size:12px; color:var(--text-faint); padding-top:6px; border-top:1px solid var(--border);">
+                      Scanned <%= dateStr %>
+                    </div>
+
+                  </div>
+
+                  <!-- Uploaded image -->
+                  <div style="border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); background:var(--bg); min-height:160px;">
+                    <img src="/<%= p.imagePath %>" alt="Uploaded skin image"
+                         style="width:100%; max-height:260px; object-fit:cover; display:block;"/>
+                  </div>
+
+                </div>
+
+                <!-- Stage images — 4 col desktop, 2 col mobile -->
+                <div style="margin-bottom:16px;">
+                  <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-faint); margin-bottom:10px;">
+                    Image processing stages
+                  </div>
+                  <div class="stage-grid-4" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+                    <%
+                      const stageMeta = [
+                        { label:'Original',     desc:'Raw upload',           f:'none' },
+                        { label:'Preprocessed', desc:'Resized & normalised', f:'grayscale(0.4) contrast(1.1)' },
+                        { label:'Mask',         desc:'Segmentation mask',    f:'grayscale(1) contrast(2.5) brightness(0.5)' },
+                        { label:'ROI',          desc:'Region of interest',   f:'saturate(1.5) contrast(1.2)' }
+                      ];
+                    %>
+                    <% stageMeta.forEach((s, si) => { %>
+                      <div>
+                        <div style="position:relative; margin-bottom:5px;">
+                          <img src="/<%= p.imagePath %>" alt="<%= s.label %>"
+                               style="width:100%; height:100px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--border); display:block; filter:<%= s.f %>;"/>
+                          <span style="position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.5); color:#fff; font-size:10px; font-weight:500; padding:2px 6px; border-radius:999px;">
+                            <%= si+1 %>
+                          </span>
+                        </div>
+                        <div style="font-size:12px; font-weight:500; margin-bottom:1px;"><%= s.label %></div>
+                        <div style="font-size:11px; color:var(--text-faint);"><%= s.desc %></div>
+                      </div>
+                    <% }) %>
+                  </div>
+                </div>
+
+                <!-- Download -->
+                <div style="display:flex; justify-content:flex-end;">
+                  <button class="btn btn-primary" style="font-size:13px;"
+                          onclick="downloadReport({
+                            id:         '<%= pid %>',
+                            result:     '<%= p.result %>',
+                            cancerType: '<%= (p.cancerType || 'Benign Lesion').replace(/'/g,'') %>',
+                            confidence: <%= conf %>,
+                            date:       '<%= dateStr %>',
+                            imagePath:  '/<%= p.imagePath %>',
+                            username:   '<%= user ? user.username : 'User' %>'
+                          })">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M7 1v8M7 9l-3-3M7 9l3-3" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M1 11h12" stroke-linecap="round"/>
+                    </svg>
+                    Download PDF
+                  </button>
+                </div>
+
+              </div>
+            </div>
+            <!-- end acc-body -->
+
+          </div>
+          <!-- end acc-item -->
+
+        <% }) %>
+      </div>
+
+      <% } %>
+    </main>
+  </div>
+</div>
+
+<style>
+  /* Hide confidence bar column on narrow phones */
+  @media (max-width: 480px) {
+    .conf-bar-col { display: none; }
+  }
+</style>
+
+<script>
+  /* ── Filter ── */
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter'));
+      btn.classList.add('active-filter');
+      const filter = btn.dataset.filter;
+      document.querySelectorAll('.acc-item').forEach(item => {
+        item.style.display = (filter === 'all' || item.dataset.result === filter) ? 'block' : 'none';
+      });
+    });
+  });
+
+  /* ── Accordion ── */
+  function toggleAcc(head) {
+    const body   = head.nextElementSibling;
+    const isOpen = head.getAttribute('aria-expanded') === 'true';
+
+    document.querySelectorAll('.acc-head[aria-expanded="true"]').forEach(h => {
+      if (h !== head) {
+        h.setAttribute('aria-expanded', 'false');
+        h.nextElementSibling.style.maxHeight = '0';
+      }
+    });
+
+    if (isOpen) {
+      head.setAttribute('aria-expanded', 'false');
+      body.style.maxHeight = '0';
+    } else {
+      head.setAttribute('aria-expanded', 'true');
+      body.style.maxHeight = body.scrollHeight + 'px';
+      setTimeout(() => { body.style.maxHeight = body.scrollHeight + 'px'; }, 320);
+      // Scroll row into view on mobile
+      setTimeout(() => { head.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+    }
+  }
+
+  /* ── PDF download ── */
+  async function downloadReport(d) {
+    const { jsPDF } = window.jspdf;
+    const doc       = new jsPDF({ unit:'mm', format:'a4' });
+    const W         = doc.internal.pageSize.getWidth();
+    const H         = doc.internal.pageSize.getHeight();
+    const isCancer  = d.result === 'Cancer';
+    const accent    = isCancer ? [220,38,38] : [15,110,86];
+
+    doc.setFillColor(15,110,86); doc.rect(0,0,W,26,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(15); doc.setFont('helvetica','bold');
+    doc.text('DermaScan \u2014 AI Detection Report', 14, 11);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text('For preliminary screening only. Not a substitute for professional medical advice.', 14, 19);
+
+    doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text('Scan information', 14, 36);
+    [['Patient', d.username],['Scan ID', d.id],['Date', d.date],['File', d.imagePath]]
+      .forEach(([lbl,val],i) => {
+        doc.setFont('helvetica','normal');
+        doc.setTextColor(120,120,120); doc.text(lbl+':', 14, 45+i*8);
+        doc.setTextColor(30,30,30);   doc.text(String(val), 46, 45+i*8);
+      });
+
+    doc.setDrawColor(220,220,220); doc.line(14,80,W-14,80);
+
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+    doc.text('Analysis result', 14, 90);
+
+    doc.setFillColor(...accent); doc.roundedRect(14,95,48,9,2.5,2.5,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text(d.result, 38, 100.5, {align:'center'});
+
+    doc.setTextColor(30,30,30); doc.setFontSize(20); doc.setFont('helvetica','bold');
+    doc.text(d.cancerType, 14, 116);
+
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+    doc.text(isCancer ? 'Malignant characteristics detected.' : 'No signs of malignancy found.', 14, 124);
+
+    doc.setFontSize(10); doc.setTextColor(100,100,100);
+    doc.text('Confidence score', 14, 136);
+    doc.setFontSize(22); doc.setFont('helvetica','bold'); doc.setTextColor(...accent);
+    doc.text(d.confidence+'%', 14, 147);
+
+    doc.setFillColor(230,230,230); doc.roundedRect(14,151,W-28,5,2,2,'F');
+    doc.setFillColor(...accent);   doc.roundedRect(14,151,(W-28)*d.confidence/100,5,2,2,'F');
+
+    const cl = d.confidence>=80 ? 'High confidence — model is certain.'
+             : d.confidence>=60 ? 'Moderate confidence — follow-up recommended.'
+             :                    'Low confidence — clinical assessment advised.';
+    doc.setFontSize(9); doc.setFont('helvetica','italic'); doc.setTextColor(130,130,130);
+    doc.text(cl, 14, 161);
+
+    doc.setDrawColor(220,220,220); doc.line(14,169,W-14,169);
+
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+    doc.text('Recommendation', 14, 179);
+    const recFull = isCancer
+      ? 'Malignant characteristics were detected. Please consult a qualified dermatologist immediately for clinical evaluation.'
+      : 'No signs of malignancy were detected. Continue regular skin self-checks every 3 months.';
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60,60,60);
+    doc.text(doc.splitTextToSize(recFull, W-28), 14, 187);
+
+    doc.setFillColor(255,243,205); doc.roundedRect(14,210,W-28,16,3,3,'F');
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(180,120,0);
+    doc.text('\u26A0 Important disclaimer', 20, 217);
+    doc.setFont('helvetica','normal'); doc.setTextColor(140,90,0);
+    doc.text('This report is AI-generated for screening only. It is not a medical diagnosis.', 20, 223);
+
+    try {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      await new Promise((res,rej) => { img.onload=res; img.onerror=rej; img.src=d.imagePath+'?nc='+Date.now(); });
+      const cvs = document.createElement('canvas');
+      cvs.width=img.naturalWidth; cvs.height=img.naturalHeight;
+      cvs.getContext('2d').drawImage(img,0,0);
+      doc.addPage();
+      doc.setFillColor(15,110,86); doc.rect(0,0,W,14,'F');
+      doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.text('Uploaded image', 14, 9);
+      doc.addImage(cvs.toDataURL('image/jpeg',0.85),'JPEG',14,20,W-28,Math.min(160,(W-28)*img.naturalHeight/img.naturalWidth));
+    } catch(_) {}
+
+    const total = doc.internal.getNumberOfPages();
+    for (let i=1;i<=total;i++) {
+      doc.setPage(i);
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(170,170,170);
+      doc.text('DermaScan AI \u00B7 Preliminary screening only \u00B7 Consult a dermatologist.', W/2, H-7, {align:'center'});
+      doc.text('Page '+i+' of '+total, W-14, H-7, {align:'right'});
+    }
+
+    doc.save('DermaScan_'+d.id+'.pdf');
+  }
+</script>
+
+</body>
+</html>

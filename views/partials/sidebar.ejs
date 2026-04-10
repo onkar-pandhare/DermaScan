@@ -1,0 +1,165 @@
+<%
+  /* currentPage and user are passed in from each page's include() call */
+%>
+
+<!-- ══ DESKTOP SIDEBAR ═══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="6" stroke="#9FE1CB" stroke-width="1.5"/>
+        <circle cx="9" cy="9" r="2.5" fill="#9FE1CB"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">DermaScan</div>
+      <div class="logo-sub">AI Detection</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <a href="/" class="nav-item <%= currentPage === 'home' ? 'active' : '' %>">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H10v-3H6v3H2V6.5z"/></svg>
+      New Scan
+    </a>
+    <a href="/history" class="nav-item <%= currentPage === 'history' ? 'active' : '' %>">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      History
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Account</div>
+    <a href="/logout" class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6"/></svg>
+      Logout
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="avatar"><%= user && user.username ? user.username.slice(0,2).toUpperCase() : 'U' %></div>
+      <div>
+        <div class="user-name"><%= user ? user.username : 'Guest' %></div>
+        <div class="user-role"><%= user ? user.email : '' %></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+
+<!-- ══ MOBILE TOP NAV ════════════════════════════════════════════════════════ -->
+<nav class="mobile-topnav">
+  <div class="mobile-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="6" stroke="#9FE1CB" stroke-width="1.5"/>
+        <circle cx="9" cy="9" r="2.5" fill="#9FE1CB"/>
+      </svg>
+    </div>
+    <span class="mobile-logo-text">DermaScan</span>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:8px;">
+    <!-- Avatar pill -->
+    <div class="avatar" style="width:30px; height:30px; font-size:11px;">
+      <%= user && user.username ? user.username.slice(0,2).toUpperCase() : 'U' %>
+    </div>
+    <!-- Hamburger opens drawer -->
+    <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+
+<!-- ══ MOBILE DRAWER ═════════════════════════════════════════════════════════ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="mobile-logo">
+      <div class="logo-mark" style="width:28px; height:28px; border-radius:8px;">
+        <svg viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="6" stroke="#9FE1CB" stroke-width="1.5"/>
+          <circle cx="9" cy="9" r="2.5" fill="#9FE1CB"/>
+        </svg>
+      </div>
+      <span class="mobile-logo-text">DermaScan</span>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <a href="/" class="nav-item <%= currentPage === 'home' ? 'active' : '' %>" onclick="closeDrawer()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H10v-3H6v3H2V6.5z"/></svg>
+      New Scan
+    </a>
+    <a href="/history" class="nav-item <%= currentPage === 'history' ? 'active' : '' %>" onclick="closeDrawer()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      History
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Account</div>
+    <a href="/logout" class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6"/></svg>
+      Logout
+    </a>
+  </div>
+
+  <div class="drawer-footer">
+    <div class="user-card">
+      <div class="avatar"><%= user && user.username ? user.username.slice(0,2).toUpperCase() : 'U' %></div>
+      <div>
+        <div class="user-name"><%= user ? user.username : 'Guest' %></div>
+        <div class="user-role" style="font-size:11px; color:var(--text-faint);"><%= user ? user.email : '' %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MOBILE BOTTOM NAV ═════════════════════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <a href="/" class="bottom-nav-item <%= currentPage === 'home' ? 'active' : '' %>">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6.5L8 2l6 4.5V14H10v-3H6v3H2V6.5z"/></svg>
+    Scan
+  </a>
+  <a href="/history" class="bottom-nav-item <%= currentPage === 'history' ? 'active' : '' %>">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+    History
+  </a>
+  <a href="/logout" class="bottom-nav-item">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6"/></svg>
+    Logout
+  </a>
+</nav>
+
+
+<!-- ══ DRAWER SCRIPT ══════════════════════════════════════════════════════════ -->
+<script>
+  function openDrawer() {
+    const overlay = document.getElementById('drawer-overlay');
+    const drawer  = document.getElementById('drawer');
+    overlay.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+      overlay.classList.add('open');
+      drawer.classList.add('open');
+    });
+  }
+  function closeDrawer() {
+    const overlay = document.getElementById('drawer-overlay');
+    const drawer  = document.getElementById('drawer');
+    overlay.classList.remove('open');
+    drawer.classList.remove('open');
+    document.body.style.overflow = '';
+    setTimeout(() => { overlay.style.display = 'none'; }, 280);
+  }
+  // Close on Escape key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+</script>

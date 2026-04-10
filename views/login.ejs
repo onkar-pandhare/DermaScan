@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login – DermaScan</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+</head>
+<body>
+
+<div class="auth-page">
+
+  <!-- ── Left decorative panel (desktop only) ── -->
+  <div class="auth-panel">
+
+    <div class="auth-panel-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="6" stroke="#9FE1CB" stroke-width="1.5"/>
+          <circle cx="9" cy="9" r="2.5" fill="#9FE1CB"/>
+        </svg>
+      </div>
+      <div>
+        <div class="auth-panel-brand">DermaScan</div>
+        <div class="auth-panel-tagline">AI Skin Cancer Detection</div>
+      </div>
+    </div>
+
+    <div class="auth-panel-headline">
+      AI-powered screening<br>for <span>early detection</span>
+    </div>
+
+    <div class="auth-panel-features">
+      <div class="auth-feature">
+        <div class="auth-feature-icon">🔬</div>
+        <div class="auth-feature-text">
+          <strong>Deep learning model</strong>
+          Trained on thousands of dermoscopy images
+        </div>
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-icon">⚡</div>
+        <div class="auth-feature-text">
+          <strong>Results in seconds</strong>
+          Full preprocessing pipeline with stage visualisation
+        </div>
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-icon">🔒</div>
+        <div class="auth-feature-text">
+          <strong>Private by default</strong>
+          Your scans are linked to your account only
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right form panel ── -->
+  <div class="auth-form-panel">
+    <div class="auth-card">
+
+      <!-- Logo (mobile only) -->
+      <div class="auth-logo-mobile">
+        <div class="logo-mark" style="width:38px; height:38px; border-radius:11px;">
+          <svg viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="9" r="6" stroke="#9FE1CB" stroke-width="1.5"/>
+            <circle cx="9" cy="9" r="2.5" fill="#9FE1CB"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:20px; font-weight:600; color:var(--text);">DermaScan</div>
+          <div style="font-size:12px; color:var(--text-faint);">AI Skin Cancer Detection</div>
+        </div>
+      </div>
+
+      <h1 class="auth-heading">Welcome back</h1>
+      <p class="auth-subheading">Sign in to continue to your dashboard</p>
+
+      <!-- Error message (rendered if Express passes error via flash or query) -->
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="auth-error">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;">
+            <circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11v.5"/>
+          </svg>
+          <%= error %>
+        </div>
+      <% } %>
+
+      <form action="/login" method="POST" id="login-form" novalidate>
+
+        <div class="auth-field">
+          <label for="email">Email address</label>
+          <input class="auth-input" type="email" id="email" name="email"
+                 required autocomplete="email" inputmode="email"
+                 placeholder="you@example.com"/>
+        </div>
+
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <div class="auth-input-wrap">
+            <input class="auth-input" type="password" id="password" name="password"
+                   required autocomplete="current-password"
+                   placeholder="••••••••"/>
+            <button type="button" class="auth-eye" onclick="togglePwd('password', this)" aria-label="Show password">
+              <!-- Eye icon -->
+              <svg id="eye-icon-password" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M1 10s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z"/>
+                <circle cx="10" cy="10" r="2.5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div style="text-align:right; margin-top:-10px; margin-bottom:22px;">
+          <a href="#" style="font-size:13px; color:var(--text-faint);">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:14px; font-size:15px; justify-content:center;" id="login-btn">
+          Sign in
+        </button>
+
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account?
+        <a href="/signup">Create one here</a>
+      </div>
+
+      <div class="auth-disclaimer">
+        ⚠️ For screening only — not a substitute for professional medical advice.
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function togglePwd(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.querySelector('svg').innerHTML = isText
+      ? '<path d="M1 10s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/>'
+      : '<path d="M2 2l16 16M6.5 6.6A7 7 0 0010 4c6 0 9 6 9 6a16.5 16.5 0 01-2.67 3.4M10 16c-6 0-9-6-9-6a16.6 16.6 0 012.32-3.09"/><circle cx="10" cy="10" r="2.5" style="display:none"/>';
+  }
+
+  // Show loading state on submit
+  document.getElementById('login-form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+  });
+
+  // Focus first input on load
+  document.getElementById('email').focus();
+</script>
+
+</body>
+</html>
