@@ -1,15 +1,18 @@
+require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
 const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
+const passport = require("passport");
 
 const app = express();
 
-// MongoDB Connection
-mongoose.connect("mongodb://127.0.0.1:27017/skinDB3")
-    .then(() => console.log("MongoDB Connected"))
-    .catch(err => console.error("MongoDB Error:", err));
+// MongoDB (use Atlas in production)
+mongoose.connect(process.env.MONGO_URI )
+    .then(() => console.log("✅ MongoDB Connected"))
+    .catch(err => console.error("❌ MongoDB Error:", err));
 
 // View Engine
 app.set("view engine", "ejs");
@@ -22,23 +25,26 @@ app.use(express.json());
 
 // Session
 app.use(session({
-    secret: "your-strong-secret-key-change-in-production",
+    secret: process.env.SESSION_SECRET || "dermascan-secret-key-2026",
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-        mongoUrl: "mongodb://127.0.0.1:27017/skinDB"
+        mongoUrl: process.env.MONGO_URI
     }),
-    cookie: { maxAge: 1000 * 60 * 60 * 24 }
+    cookie: { maxAge: 1000 * 60 * 60 * 24, httpOnly: true }
 }));
 
-// Make user available globally in all EJS files
+// Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Global user
 app.use((req, res, next) => {
-    res.locals.user = req.session.user || null;
+    res.locals.user = req.user || req.session.user || null;
     next();
 });
 
-
-// Uploads folder
+// Uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
@@ -48,7 +54,8 @@ const predictionRoutes = require("./routes/prediction");
 app.use("/", authRoutes);
 app.use("/", predictionRoutes);
 
-// Server
-app.listen(5000, () => {
-    console.log("Server running at http://localhost:5000");
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`✅ DermaScan running on port ${PORT}`);
 });

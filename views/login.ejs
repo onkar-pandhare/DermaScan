@@ -12,9 +12,8 @@
 
 <div class="auth-page">
 
-  <!-- ── Left decorative panel (desktop only) ── -->
+  <!-- Left decorative panel (desktop only) -->
   <div class="auth-panel">
-
     <div class="auth-panel-logo">
       <div class="logo-mark">
         <svg viewBox="0 0 18 18" fill="none">
@@ -55,10 +54,9 @@
         </div>
       </div>
     </div>
-
   </div>
 
-  <!-- ── Right form panel ── -->
+  <!-- Right form panel -->
   <div class="auth-form-panel">
     <div class="auth-card">
 
@@ -79,7 +77,6 @@
       <h1 class="auth-heading">Welcome back</h1>
       <p class="auth-subheading">Sign in to continue to your dashboard</p>
 
-      <!-- Error message (rendered if Express passes error via flash or query) -->
       <% if (typeof error !== 'undefined' && error) { %>
         <div class="auth-error">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;">
@@ -89,23 +86,29 @@
         </div>
       <% } %>
 
+      <!-- Google Login Button -->
+      <a href="/auth/google" class="google-btn">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/2048px-Google_%22G%22_logo.svg.png" 
+             alt="Google" width="22" height="22">
+        Continue with Google
+      </a>
+
+      <div class="auth-divider">or sign in with email</div>
+
       <form action="/login" method="POST" id="login-form" novalidate>
 
         <div class="auth-field">
           <label for="email">Email address</label>
           <input class="auth-input" type="email" id="email" name="email"
-                 required autocomplete="email" inputmode="email"
-                 placeholder="you@example.com"/>
+                 required autocomplete="email" placeholder="you@example.com"/>
         </div>
 
         <div class="auth-field">
           <label for="password">Password</label>
           <div class="auth-input-wrap">
             <input class="auth-input" type="password" id="password" name="password"
-                   required autocomplete="current-password"
-                   placeholder="••••••••"/>
+                   required autocomplete="current-password" placeholder="••••••••"/>
             <button type="button" class="auth-eye" onclick="togglePwd('password', this)" aria-label="Show password">
-              <!-- Eye icon -->
               <svg id="eye-icon-password" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M1 10s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z"/>
                 <circle cx="10" cy="10" r="2.5"/>
@@ -148,14 +151,12 @@
       : '<path d="M2 2l16 16M6.5 6.6A7 7 0 0010 4c6 0 9 6 9 6a16.5 16.5 0 01-2.67 3.4M10 16c-6 0-9-6-9-6a16.6 16.6 0 012.32-3.09"/><circle cx="10" cy="10" r="2.5" style="display:none"/>';
   }
 
-  // Show loading state on submit
-  document.getElementById('login-form').addEventListener('submit', function(e) {
+  document.getElementById('login-form').addEventListener('submit', function() {
     const btn = document.getElementById('login-btn');
     btn.disabled = true;
     btn.textContent = 'Signing in…';
   });
 
-  // Focus first input on load
   document.getElementById('email').focus();
 </script>
 

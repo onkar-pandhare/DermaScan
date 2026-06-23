@@ -1,21 +1,21 @@
 const mongoose = require("mongoose");
 
-const schema = new mongoose.Schema({
-    imagePath: String,
-    result: String,
+const predictionSchema = new mongoose.Schema({
+    imagePath: {
+        type: String,
+        required: true,  // Cloudinary HTTPS URL
+    },
+    result:     String,
     cancerType: String,
     confidence: Number,
-
-    // 🔥 NEW FIELD
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "User",
     },
-
     createdAt: {
         type: Date,
-        default: Date.now
-    }
+        default: Date.now,
+    },
 });
 
-module.exports = mongoose.model("Prediction", schema);
+module.exports = mongoose.model("Prediction", predictionSchema);

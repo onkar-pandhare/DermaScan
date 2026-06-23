@@ -2,40 +2,60 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const axios = require("axios");
-const fs = require("fs");
 const FormData = require("form-data");
 const Prediction = require("../models/prediction");
+const cloudinary = require("../utils/cloudinary");
 
-// 📦 Multer setup
-const storage = multer.diskStorage({
-    destination: "uploads/",
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
-    }
-});
+// 📦 Multer — memory storage (no local uploads/ folder needed)
+const upload = multer({ storage: multer.memoryStorage() });
 
-const upload = multer({ storage });
+// Helper: stream a Buffer to Cloudinary and return the secure URL
+async function uploadToCloudinary(buffer, filename) {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: "dermascan",
+                public_id: filename,
+                resource_type: "image",
+                overwrite: true,
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result.secure_url);
+            }
+        );
+        stream.end(buffer);
+    });
+}
 
-// 🏠 Home route - PUBLIC (No login required)
+// 🏠 Home — PUBLIC
 router.get("/", (req, res) => {
     res.render("index");
 });
 
-// 🔍 Prediction route - PROTECTED (Login required)
+// 🔍 Predict — PROTECTED
 router.post("/predict", upload.single("image"), async (req, res) => {
     try {
-        // Check if user is logged in BEFORE processing
         if (!req.session.userId) {
-            return res.redirect("/login?redirect=/");   // Redirect to login with return URL
+            return res.redirect("/login?redirect=/");
+        }
+
+        if (!req.file) {
+            return res.status(400).send("No image uploaded.");
         }
 
         console.log("✅ Request received");
 
+        // 1. Forward image buffer to Flask
         const formData = new FormData();
-        formData.append("image", fs.createReadStream(req.file.path));
+        formData.append("image", req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype,
+        });
 
+        const flaskUrl = process.env.FLASK_URL || "http://localhost:8000";
         const response = await axios.post(
-            "http://localhost:8000/predict",
+            `${flaskUrl}/predict`,
             formData,
             { headers: formData.getHeaders() }
         );
@@ -43,26 +63,29 @@ router.post("/predict", upload.single("image"), async (req, res) => {
         const data = response.data;
         console.log("🔥 Flask response:", data);
 
-        const imagePath = "uploads/" + req.file.filename;
+        // 2. Upload image to Cloudinary
+        const uniqueName = `${Date.now()}-${req.file.originalname.replace(/\s+/g, "_")}`;
+        const cloudinaryUrl = await uploadToCloudinary(req.file.buffer, uniqueName);
+        console.log("☁️  Cloudinary URL:", cloudinaryUrl);
 
-        // Save to database
+        // 3. Save prediction to MongoDB Atlas
         await Prediction.create({
-            imagePath: imagePath,
+            imagePath: cloudinaryUrl,
             result: data.result,
             cancerType: data.type,
             confidence: data.confidence,
-            userId: req.session.userId
+            userId: req.session.userId,
         });
 
-        // Render result
+        // 4. Render result page
         res.render("result", {
-            result: data.result || "Non-Cancer",
-            cancerType: data.type || "Unknown Type",
-            confidence: data.confidence || 0,
-            original: data.original ? "http://localhost:8000/" + data.original : "",
-            preprocessed: data.preprocessed ? "http://localhost:8000/" + data.preprocessed : "",
-            mask: data.mask ? "http://localhost:8000/" + data.mask : "",
-            roi: data.roi ? "http://localhost:8000/" + data.roi : ""
+            result:       data.result        || "Non-Cancer",
+            cancerType:   data.type          || "Unknown Type",
+            confidence:   data.confidence    || 0,
+            original:     data.original      ? `${flaskUrl}/${data.original}`      : cloudinaryUrl,
+            preprocessed: data.preprocessed  ? `${flaskUrl}/${data.preprocessed}` : "",
+            mask:         data.mask          ? `${flaskUrl}/${data.mask}`          : "",
+            roi:          data.roi           ? `${flaskUrl}/${data.roi}`           : "",
         });
 
     } catch (err) {
@@ -71,7 +94,7 @@ router.post("/predict", upload.single("image"), async (req, res) => {
     }
 });
 
-// 📊 History route - PROTECTED
+// 📊 History — PROTECTED
 router.get("/history", (req, res) => {
     if (!req.session.userId) {
         return res.redirect("/login?redirect=/history");
