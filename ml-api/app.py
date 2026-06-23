@@ -11,6 +11,9 @@ Key differences from the old model
   NEW → input 256×256×4, best_skin_disease_model.keras, no pkl needed
         (classes are hard-coded in the same sorted order as training)
 """
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 import os
 import io
